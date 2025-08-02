@@ -1,0 +1,61 @@
+/* css/app.css or globally injected */
+
+.page-container {
+  width: 794px;
+  margin-bottom: 32px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  background: white;
+  padding: 48px 40px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+}
+
+@media screen {
+  .a4-page {
+    width: 794px;
+    height: 1122px;
+    overflow: hidden;
+    page-break-after: always;
+    position: relative;
+  }
+
+  .a4-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    gap: 0 !important;
+    transform: none !important;
+    scale: 1 !important;
+  }
+
+  .page {
+    page-break-after: always;
+    page-break-inside: avoid;
+    break-after: page;
+    display: block;
+    overflow: hidden;
+    overflow: hidden !important;
+    height: 1122px !important;
+    width: 794px !important;
+    margin-bottom: 0 !important;
+  }
+}
