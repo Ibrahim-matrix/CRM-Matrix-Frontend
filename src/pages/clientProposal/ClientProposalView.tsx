@@ -29,6 +29,7 @@ import {
   FaBackward,
   FaCheck,
   FaCross,
+  FaDownload,
   FaTimes,
   FaWhatsapp,
 } from "react-icons/fa";
@@ -36,10 +37,15 @@ import HtmlPaginated from "../proposal/components/HtmlPaginated ";
 import NotFound from "../not-found/NotFound";
 import Unauthorized from "../Unauthorized/Unauthorized";
 import ESignCanvas from "./ESignCanvas";
+import ProposalInfoSkeleton from "../proposal/components/ProposalInfoSkeleton ";
+import html2pdf from "html2pdf.js";
 
 interface Proposal {
-  esign: string;
+  Esign: string;
   status: string;
+  sentDate: Date;
+  clientReactionDate: Date;
+  clientNote: string;
   name: string;
   email: string;
   phone: string;
@@ -109,6 +115,50 @@ const ClientProposalView = () => {
 
   const [showAccept, setShowAccept] = useState<boolean>(false);
 
+  const handlePrint = () => window.print();
+
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPDF(true);
+
+    const element = document.querySelector(".print-area");
+
+    // ✅ Wait for all images inside the element to load
+    const images = element?.querySelectorAll("img");
+    await Promise.all(
+      Array.from(images ? images : []).map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      })
+    );
+
+    await new Promise((res) => setTimeout(res, 200)); // tiny delay
+
+    html2pdf()
+      .set({
+        margin: 0,
+        filename: "proposal.pdf",
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true, // ✅ required
+          allowTaint: false,
+          logging: true,
+          backgroundColor: null,
+        },
+        jsPDF: {
+          unit: "px",
+          format: [794, 1122],
+          orientation: "portrait",
+        },
+      })
+      .from(element)
+      .save()
+      .finally(() => setIsGeneratingPDF(false));
+  };
+
   const getProposalDetails = async () => {
     try {
       setLoading(true);
@@ -164,25 +214,33 @@ const ClientProposalView = () => {
                       : bgImage
                   }
                 >
-                  <Image
-                    src={proposal?.companyInfo?.ComapanyImageOne}
-                    w={"40%"}
-                  ></Image>
-                  <Box>
-                    <Text fontWeight="bold">Dear, {proposal?.name}</Text>
-                    <Text fontSize={"sm"}>
-                      <span style={{ fontWeight: "bold" }}>Email Id:</span>{" "}
-                      {proposal?.email}
-                    </Text>
-                    <Text fontSize={"sm"}>
-                      <span style={{ fontWeight: "bold" }}>Contact No:</span>{" "}
-                      {proposal?.phone}
-                    </Text>
-                    <Text mb={6} maxW={"50%"} fontSize={"sm"}>
-                      <span style={{ fontWeight: "bold" }}>Address:</span>{" "}
-                      {proposal?.location}
-                    </Text>
-                  </Box>
+                  {loading ? (
+                    <ProposalInfoSkeleton />
+                  ) : (
+                    <>
+                      <Image
+                        src={proposal?.companyInfo?.ComapanyImageOne}
+                        w={"40%"}
+                      ></Image>
+                      <Box>
+                        <Text fontWeight="bold">Dear, {proposal?.name}</Text>
+                        <Text fontSize={"sm"}>
+                          <span style={{ fontWeight: "bold" }}>Email Id:</span>{" "}
+                          {proposal?.email}
+                        </Text>
+                        <Text fontSize={"sm"}>
+                          <span style={{ fontWeight: "bold" }}>
+                            Contact No:
+                          </span>{" "}
+                          {proposal?.phone}
+                        </Text>
+                        <Text mb={6} maxW={"50%"} fontSize={"sm"}>
+                          <span style={{ fontWeight: "bold" }}>Address:</span>{" "}
+                          {proposal?.location}
+                        </Text>
+                      </Box>
+                    </>
+                  )}
                   <Divider my={4} />
                   {loading ? (
                     <Box>
@@ -222,23 +280,25 @@ const ClientProposalView = () => {
                       ))}
                     </Box>
                   ) : (
-                    <Box
-                      dangerouslySetInnerHTML={{
-                        __html: proposal?.greeting ? proposal?.greeting : "",
-                      }}
-                    />
+                    <>
+                      <Box
+                        dangerouslySetInnerHTML={{
+                          __html: proposal?.greeting ? proposal?.greeting : "",
+                        }}
+                      />
+                      <Box mt={6}>
+                        <Text fontWeight={"bold"}>Kind Regards,</Text>
+                        <Text fontWeight={"bold"}>
+                          {proposal?.companyInfo?.Name}
+                        </Text>
+                        <Text>Mob: {proposal?.companyInfo?.Phone}</Text>
+                        <Text>Email: {proposal?.companyInfo?.Email}</Text>
+                        <Text fontWeight={"bold"}>
+                          {proposal?.companyInfo?.companyName}
+                        </Text>
+                      </Box>
+                    </>
                   )}
-                  <Box mt={6}>
-                    <Text fontWeight={"bold"}>Kind Regards,</Text>
-                    <Text fontWeight={"bold"}>
-                      {proposal?.companyInfo?.Name}
-                    </Text>
-                    <Text>Mob: {proposal?.companyInfo?.Phone}</Text>
-                    <Text>Email: {proposal?.companyInfo?.Email}</Text>
-                    <Text fontWeight={"bold"}>
-                      {proposal?.companyInfo?.companyName}
-                    </Text>
-                  </Box>
                   <Flex
                     position={"absolute"}
                     bgImage={bottomImage}
@@ -679,16 +739,81 @@ const ClientProposalView = () => {
                     fontSize="md"
                   />
 
-                  <Box mt={10}>
-                    <Text fontWeight="bold" fontSize="lg">
-                      Thank you.
-                    </Text>
-                    <Text fontWeight={"bold"}>
-                      {proposal?.companyInfo?.companyName}
-                    </Text>
-                    <Text>Mob: {proposal?.companyInfo?.Phone}</Text>
-                    <Text>Email: {proposal?.companyInfo?.Email}</Text>
-                  </Box>
+                  <Flex
+                    mt={6}
+                    justifyContent={"space-between"}
+                    alignItems={"flex-end"}
+                  >
+                    <Box mt={10}>
+                      <Text fontWeight="bold" fontSize="lg">
+                        Thank you.
+                      </Text>
+                      <Text fontWeight={"bold"}>
+                        {proposal?.companyInfo?.companyName}
+                      </Text>
+                      <Text>Mob: {proposal?.companyInfo?.Phone}</Text>
+                      <Text>Email: {proposal?.companyInfo?.Email}</Text>
+                      <Text whiteSpace={"nowrap"}>
+                        Date:{" "}
+                        {proposal?.sentDate
+                          ? new Date(proposal?.sentDate).toLocaleDateString(
+                              "en-GB",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true,
+                              }
+                            )
+                          : ""}
+                      </Text>
+                    </Box>
+                    {(proposal?.status === "ACCEPTED" ||
+                      proposal?.status === "DECLINED") && (
+                      <VStack
+                        alignItems={"flex-end"}
+                        justifyContent={"flex-start"}
+                      >
+                        <Tag
+                          size={"lg"}
+                          colorScheme={
+                            proposal?.status === "ACCEPTED" ? "green" : "red"
+                          }
+                        >
+                          {proposal?.status}
+                        </Tag>
+                        <Text>
+                          <strong>Note: </strong>
+                          {proposal?.clientNote}
+                        </Text>
+                        <Image
+                          crossOrigin="anonymous"
+                          src={proposal?.Esign}
+                          width={"30%"}
+                        ></Image>
+                        <Text fontWeight={"bold"}>
+                          Signnature - {proposal?.name}
+                        </Text>
+                        <Text>
+                          Date:{" "}
+                          {proposal?.clientReactionDate
+                            ? new Date(
+                                proposal?.clientReactionDate
+                              ).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true,
+                              })
+                            : ""}
+                        </Text>
+                      </VStack>
+                    )}
+                  </Flex>
                 </A4Box>
               </A4ResponsiveWrapper>
             </VStack>
@@ -696,7 +821,7 @@ const ClientProposalView = () => {
 
           {showAccept && (
             <Flex justifyContent={"center"} w={"100%"} p={2}>
-              <ESignCanvas />
+              <ESignCanvas back={setShowAccept} />
             </Flex>
           )}
           {proposal?.status !== "ACCEPTED" &&
@@ -739,18 +864,30 @@ const ClientProposalView = () => {
               )}
             </HStack>
           ) : (
-            <Text
-              p={4}
+            <Flex
               bg={proposal?.status === "ACCEPTED" ? "green.400" : "red.400"}
               w={"full"}
-              textAlign={"center"}
-              color={"white"}
-              fontWeight={"bold"}
+              alignItems={"center"}
+              justifyContent={"center"}
             >
-              {proposal?.status === "ACCEPTED"
-                ? "YOU HAVE ALREADY ACCEPTED THE PROPOSAL"
-                : "YOU HAVE ALREADY DECLINED THE PROPOSAL"}
-            </Text>
+              <Text
+                p={4}
+                textAlign={"center"}
+                color={"white"}
+                fontWeight={"bold"}
+              >
+                {proposal?.status === "ACCEPTED"
+                  ? "YOU HAVE ALREADY ACCEPTED THE PROPOSAL"
+                  : "YOU HAVE ALREADY DECLINED THE PROPOSAL"}
+              </Text>
+              <Button
+                leftIcon={<FaDownload />}
+                colorScheme="blue"
+                onClick={handleDownloadPDF}
+              >
+                Download
+              </Button>
+            </Flex>
           )}
         </VStack>
       )}

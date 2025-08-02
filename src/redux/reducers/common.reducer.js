@@ -92,6 +92,7 @@ import {
   POST_GREETING_CATEGORY_SUCCESS,
   GET_GREETING_CATEGORY_DATA,
   DELETE_GREETING_SUCCESS,
+  POST_CLIENT_PROPOSAL_EMAIL,
 } from "../types/common.types";
 import { initialStates } from "../initialStates/initialStates";
 import Cookies from "js-cookie";
@@ -151,6 +152,13 @@ export const commonReducer = (state = initialStates, action) => {
         success: true,
       };
     case POST_GREETING_CATEGORY_SUCCESS:
+      return {
+        ...state,
+        loading: false,
+        error: false,
+        success: true,
+      };
+    case POST_CLIENT_PROPOSAL_EMAIL:
       return {
         ...state,
         loading: false,

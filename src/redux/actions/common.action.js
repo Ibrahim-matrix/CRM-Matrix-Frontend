@@ -96,6 +96,7 @@ import {
   POST_GREETING_CATEGORY_SUCCESS,
   GET_GREETING_CATEGORY_DATA,
   DELETE_GREETING_SUCCESS,
+  POST_CLIENT_PROPOSAL_EMAIL,
 } from "../types/common.types";
 import { BASE_URL, BASE_URL_SUPERADMIN } from "../../config/RequestMethod";
 
@@ -143,6 +144,7 @@ const POSTendpointActionTypesPost = {
   todo: POST_TODO_DATA,
   proposal: POST_PROPOSAL_SUCCESS,
   proposalGreeting: POST_GREETING_CATEGORY_SUCCESS,
+  "client-proposal": POST_CLIENT_PROPOSAL_EMAIL,
   // "admins/todo": POST_SUPER_TODO,
   "lead/logs": POST_LEAD_LOGS_SUCCESS,
   "auth/signin": POST_SIGN_IN_SUCCESS,

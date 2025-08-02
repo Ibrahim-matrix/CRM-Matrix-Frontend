@@ -16,16 +16,19 @@ import {
   AlertDialogHeader,
   AlertDialogBody,
   AlertDialogFooter,
+  Input,
+  Textarea,
 } from "@chakra-ui/react";
 import { FaSignature } from "react-icons/fa";
 import axios from "axios";
 import { BASE_URL, CLOUDINARY_CLOUD_NAME } from "../../config/RequestMethod";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-const ESignCanvas = () => {
+const ESignCanvas = ({ back }: { back: any }) => {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const cancelRef = useRef(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [remark, setRemark] = useState("");
 
   const [searchParams] = useSearchParams();
   const proposalId = searchParams.get("proposalId");
@@ -43,6 +46,14 @@ const ESignCanvas = () => {
     if (sigCanvas.current?.isEmpty()) {
       toast({
         title: "Signature required",
+        status: "warning",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
+    } else if (!remark.trim()) {
+      toast({
+        title: "Remark required",
         status: "warning",
         duration: 2000,
         isClosable: true,
@@ -71,6 +82,7 @@ const ESignCanvas = () => {
 
       const payload = {
         esign: res?.data?.secure_url,
+        clientNote: remark,
       };
 
       const res2 = await axios.put(
@@ -94,6 +106,9 @@ const ESignCanvas = () => {
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      back(false);
+      window.location.reload();
     }
   };
 
@@ -138,6 +153,36 @@ const ESignCanvas = () => {
             }}
           />
         </Box>
+        <Box w="100%">
+          <Text
+            fontSize="sm"
+            fontWeight="semibold"
+            color="gray.600"
+            mb={2}
+            letterSpacing="wide"
+          >
+            Remark
+          </Text>
+          <Textarea
+            value={remark}
+            onChange={(e) => setRemark(e.target.value)}
+            placeholder="Type any message, feedback, or note..."
+            size="md"
+            borderRadius="md"
+            bg="gray.50"
+            borderColor="gray.300"
+            _hover={{ borderColor: "gray.400" }}
+            _focus={{
+              borderColor: "blue.500",
+              boxShadow: "0 0 0 1px #3182ce",
+              bg: "white",
+            }}
+            p={4}
+            minH="100px"
+            resize="vertical"
+            transition="all 0.2s"
+          />
+        </Box>
 
         <HStack spacing={4}>
           <Button colorScheme="green" onClick={openConfirmModal}>
@@ -171,7 +216,12 @@ const ESignCanvas = () => {
               <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button colorScheme="green" onClick={handleConfirm} ml={3}>
+              <Button
+                colorScheme="green"
+                onClick={handleConfirm}
+                ml={3}
+                isDisabled={!remark}
+              >
                 Yes, Proceed
               </Button>
             </AlertDialogFooter>

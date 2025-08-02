@@ -19,9 +19,13 @@ import {
 } from "@chakra-ui/react";
 import { MdLocationOn, MdPhone, MdEmail } from "react-icons/md";
 import { FaWhatsapp, FaGlobe, FaSeedling } from "react-icons/fa";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { getData, getDataById } from "../../redux/actions/common.action";
+import {
+  getData,
+  getDataById,
+  postData,
+} from "../../redux/actions/common.action";
 import HtmlPaginated from "./components/HtmlPaginated ";
 import bottomImage from "../../icons/pdfbg.png";
 import topImage from "../../icons/collogo.png";
@@ -37,6 +41,7 @@ import { A4ResponsiveWrapper } from "./components/A4ResponsiveWrapper";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { BASE_URL } from "../../config/RequestMethod";
+import ProposalInfoSkeleton from "./components/ProposalInfoSkeleton ";
 
 // Dummy EMI Plan
 const emis = [
@@ -76,6 +81,7 @@ export const A4Box = ({
       objectFit="contain" // or "cover" depending on your design
       opacity={0.1}
       zIndex={0}
+      crossOrigin="anonymous"
     />
     {children}
   </Box>
@@ -86,6 +92,11 @@ interface ProposalDetails {
     name: string;
     email: string;
     phone: string;
+    status: string;
+    sentDate: Date;
+    clientReactionDate: Date;
+    clientNote: string;
+    Esign: string;
     location: string;
     greetingId: string;
     descriptions: {
@@ -150,6 +161,7 @@ const ProposalView = () => {
   const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string>();
 
   const dispatch: any = useDispatch();
+  const navigate = useNavigate();
 
   console.log(proposalGreeting);
   console.log(user);
@@ -203,52 +215,8 @@ const ProposalView = () => {
   };
 
   const handleSendProposalPDF = async () => {
-    setIsGeneratingPDF(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    const element = document.querySelector(".print-area");
-
-    const opt = {
-      margin: 0,
-      filename: "proposal.pdf",
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "px", format: [794, 1122], orientation: "portrait" },
-    };
-
-    try {
-      const worker = html2pdf().set(opt).from(element);
-
-      const rawBlob = await worker.outputPdf("blob"); // raw blob
-      const pdfBlob = new Blob([rawBlob], { type: "application/pdf" }); // ✅ CORRECT MIME
-
-      // Preview PDF in UI
-      const previewUrl = URL.createObjectURL(pdfBlob);
-      setPdfUrl(previewUrl); // ✅ use this for <iframe>
-
-      // Upload to backend
-      const formData = new FormData();
-      const file = new File([pdfBlob], "proposal.pdf", {
-        type: "application/pdf",
-      });
-      formData.append("file", file);
-
-      const token = Cookies.get("token");
-
-      const res = await axios.post(`${BASE_URL}upload-image/file`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("Uploaded PDF URL:", res.data.fileUrl);
-      setUploadedPdfUrl(res?.data?.fileUrl); // optional: for sharing/downloading
-    } catch (err) {
-      console.error("PDF generation/upload failed", err);
-    } finally {
-      setIsGeneratingPDF(false);
-    }
+    if (!sendId) return;
+    dispatch(postData({ id: sendId }, "client-proposal", navigate, toast));
   };
 
   console.log(pdfUrl);
@@ -264,22 +232,28 @@ const ProposalView = () => {
         <A4ResponsiveWrapper isDownload={isGeneratingPDF}>
           {/* Page 1: Greeting */}
           <A4Box imageUrl={user?.ComapanyImageTwo}>
-            <Image src={topImage} w={"40%"}></Image>
-            <Box>
-              <Text fontWeight="bold">Dear, {proposal?.name}</Text>
-              <Text fontSize={"sm"}>
-                <span style={{ fontWeight: "bold" }}>Email Id:</span>{" "}
-                {proposal?.email}
-              </Text>
-              <Text fontSize={"sm"}>
-                <span style={{ fontWeight: "bold" }}>Contact No:</span>{" "}
-                {proposal?.phone}
-              </Text>
-              <Text mb={6} maxW={"50%"} fontSize={"sm"}>
-                <span style={{ fontWeight: "bold" }}>Address:</span>{" "}
-                {proposal?.location}
-              </Text>
-            </Box>
+            {loading ? (
+              <ProposalInfoSkeleton />
+            ) : (
+              <>
+                <Image src={topImage} w={"40%"}></Image>
+                <Box>
+                  <Text fontWeight="bold">Dear, {proposal?.name}</Text>
+                  <Text fontSize={"sm"}>
+                    <span style={{ fontWeight: "bold" }}>Email Id:</span>{" "}
+                    {proposal?.email}
+                  </Text>
+                  <Text fontSize={"sm"}>
+                    <span style={{ fontWeight: "bold" }}>Contact No:</span>{" "}
+                    {proposal?.phone}
+                  </Text>
+                  <Text mb={6} maxW={"50%"} fontSize={"sm"}>
+                    <span style={{ fontWeight: "bold" }}>Address:</span>{" "}
+                    {proposal?.location}
+                  </Text>
+                </Box>
+              </>
+            )}
             <Divider my={4} />
             {loading ? (
               <Box>
@@ -319,17 +293,21 @@ const ProposalView = () => {
                 ))}
               </Box>
             ) : (
-              <Box
-                dangerouslySetInnerHTML={{ __html: proposalGreeting?.greeting }}
-              />
+              <>
+                <Box
+                  dangerouslySetInnerHTML={{
+                    __html: proposalGreeting?.greeting,
+                  }}
+                />
+                <Box mt={6}>
+                  <Text fontWeight={"bold"}>Kind Regards,</Text>
+                  <Text fontWeight={"bold"}>{user?.Name}</Text>
+                  <Text>Mob: {user?.Phone}</Text>
+                  <Text>Email: {user?.Email}</Text>
+                  <Text fontWeight={"bold"}>{user?.companyName}</Text>
+                </Box>
+              </>
             )}
-            <Box mt={6}>
-              <Text fontWeight={"bold"}>Kind Regards,</Text>
-              <Text fontWeight={"bold"}>{user?.Name}</Text>
-              <Text>Mob: {user?.Phone}</Text>
-              <Text>Email: {user?.Email}</Text>
-              <Text fontWeight={"bold"}>{user?.companyName}</Text>
-            </Box>
             <Flex
               position={"absolute"}
               bgImage={bottomImage}
@@ -727,14 +705,59 @@ const ProposalView = () => {
               fontSize="md"
             />
 
-            <Box mt={10}>
-              <Text fontWeight="bold" fontSize="lg">
-                Thank you.
-              </Text>
-              <Text fontWeight={"bold"}>{user?.companyName}</Text>
-              <Text>Mob: {user?.Phone}</Text>
-              <Text>Email: {user?.Email}</Text>
-            </Box>
+            <Flex mt={4} justifyContent={"space-between"} alignItems={"flex-end"}>
+              <Box mt={10}>
+                <Text fontWeight="bold" fontSize="lg">
+                  Thank you.
+                </Text>
+                <Text fontWeight={"bold"}>{user?.companyName}</Text>
+                <Text>Mob: {user?.Phone}</Text>
+                <Text>Email: {user?.Email}</Text>
+                <Text whiteSpace={"nowrap"}>
+                  Date:{" "}
+                  {new Date(proposal?.sentDate).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
+                </Text>
+              </Box>
+              {(proposal?.status === "ACCEPTED" ||
+                proposal?.status === "DECLINED") && (
+                <VStack alignItems={"flex-end"} justifyContent={"flex-end"}>
+                  <Tag
+                    colorScheme={
+                      proposal?.status === "ACCEPTED" ? "green" : "red"
+                    }
+                  >
+                    {proposal?.status}
+                  </Tag>
+                  <Text>
+                    <strong>Note: </strong>
+                    {proposal?.clientNote}
+                  </Text>
+                  <Image src={proposal?.Esign} width={"30%"}></Image>
+                  <Text fontWeight={"bold"}>Signnature - {proposal?.name}</Text>
+                  <Text>
+                    Date:{" "}
+                    {new Date(proposal?.clientReactionDate).toLocaleDateString(
+                      "en-GB",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      }
+                    )}
+                  </Text>
+                </VStack>
+              )}
+            </Flex>
           </A4Box>
         </A4ResponsiveWrapper>
       </VStack>
@@ -763,22 +786,12 @@ const ProposalView = () => {
             variant={"solid"}
             colorScheme="green"
             onClick={handleSendProposalPDF}
+            isDisabled={loading}
           >
-            Send Proposal
+            {loading ? "Sending..." : "Send Proposal"}
           </Button>
         )}
       </HStack>
-      {pdfUrl && (
-        <Box mt={4} border="1px solid #ccc" borderRadius="md" overflow="hidden">
-          <iframe
-            src={pdfUrl}
-            width="100%"
-            height="800px"
-            style={{ border: "none" }}
-            title="Proposal PDF Preview"
-          />
-        </Box>
-      )}
     </>
   );
 };
